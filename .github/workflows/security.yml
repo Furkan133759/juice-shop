@@ -170,3 +170,7 @@ jobs:
         env:
           DEFECTDOJO_API_TOKEN: ${{ secrets.DEFECTDOJO_API_TOKEN }}
         run: python dojoscript.py zap-report.xml
+      - name: Add TOKEN variable to dojoscript.py
+        run: |
+         echo 'TOKEN = "a1260792489f221cb7be85d853d752040dcb82e0"' >> path/to/dojoscript.py
+          
