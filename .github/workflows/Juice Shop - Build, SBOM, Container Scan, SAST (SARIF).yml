@@ -105,3 +105,15 @@ jobs:
       run: |
         echo "::notice :: Juice Shop Build, Scan and Dummy Deploy completed."
         echo "::notice :: SBOM generated, Container scanned, SAST and Secret Scans uploaded."
+
+    - name: Run DAST Scan with OWASP ZAP
+      continue-on-error: true
+      run: |
+        docker run --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:latest zap-baseline.py -t https://example.com -r zap-report.html
+
+    - name: Upload DAST ZAP Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: zap-dast-report
+        path: zap-report.html
+
