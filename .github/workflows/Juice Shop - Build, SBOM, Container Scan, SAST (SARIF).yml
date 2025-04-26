@@ -1,0 +1,64 @@
+name: Juice Shop - Build, SBOM, Container Scan, SAST (SARIF)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_sbom_scan_sast:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t juice-shop-custom .
+
+    - name: Install Syft
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Generate SBOM with Syft
+      run: |
+        syft docker:juice-shop-custom -o json > sbom.json
+
+    - name: Upload SBOM Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-file
+        path: sbom.json
+
+    - name: Install Grype
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Scan Docker image with Grype
+      run: |
+        grype docker:juice-shop-custom -o json > grype-scan.json || true
+
+    - name: Upload Grype Scan Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: grype-scan
+        path: grype-scan.json
+
+    - name: Install Semgrep
+      run: |
+        pip install semgrep
+
+    - name: Run Semgrep and output SARIF
+      run: |
+        semgrep --config p/default --sarif > semgrep-results.sarif || true
+
+    - name: Upload Semgrep SARIF Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: semgrep-sarif
+        path: semgrep-results.sarif
