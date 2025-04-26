@@ -14,7 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Docker Build
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -22,7 +21,6 @@ jobs:
       run: |
         docker build -t juice-shop-custom .
 
-    # Syft SBOM
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -37,14 +35,14 @@ jobs:
         name: sbom-file
         path: sbom.json
 
-    # Grype Tarama
     - name: Install Grype
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
     - name: Scan Docker image with Grype
+      continue-on-error: true
       run: |
-        grype docker:juice-shop-custom -o json > grype-scan.json || true
+        grype docker:juice-shop-custom -o json > grype-scan.json
 
     - name: Upload Grype Scan Artifact
       uses: actions/upload-artifact@v4
@@ -52,14 +50,14 @@ jobs:
         name: grype-scan
         path: grype-scan.json
 
-    # Semgrep ile SAST (SARIF)
     - name: Install Semgrep
       run: |
         pip install semgrep
 
     - name: Run Semgrep and output SARIF
+      continue-on-error: true
       run: |
-        semgrep --config p/default --sarif > semgrep-results.sarif || true
+        semgrep --config p/default --sarif > semgrep-results.sarif
 
     - name: Upload Semgrep SARIF Artifact
       uses: actions/upload-artifact@v4
@@ -67,14 +65,14 @@ jobs:
         name: semgrep-sarif
         path: semgrep-results.sarif
 
-    # Gitleaks ile Secret Tarama
     - name: Install Gitleaks
       run: |
         curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/main/scripts/install.sh | bash
 
     - name: Run Gitleaks Secret Scan
+      continue-on-error: true
       run: |
-        gitleaks detect --source . --report-format sarif --report-path gitleaks-results.sarif || true
+        gitleaks detect --source . --report-format sarif --report-path gitleaks-results.sarif
 
     - name: Upload Gitleaks SARIF Artifact
       uses: actions/upload-artifact@v4
