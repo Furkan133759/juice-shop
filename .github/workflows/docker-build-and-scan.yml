@@ -1,10 +1,10 @@
 name: Juice Shop - Build, SBOM, Container Scan, SAST (SARIF)
 
 on:
-  workflow_dispatch:   # Manuel çalıştırmak için
+  workflow_dispatch:
   push:
     branches:
-      - main           # veya kullandığın branch
+      - main
 
 jobs:
   build_sbom_scan_sast:
@@ -14,7 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Docker Build adımı
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -22,7 +21,6 @@ jobs:
       run: |
         docker build -t juice-shop-custom .
 
-    # Syft kurulumu ve SBOM çıkarımı
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -37,7 +35,6 @@ jobs:
         name: sbom-file
         path: sbom.json
 
-    # Grype kurulumu ve Container taraması
     - name: Install Grype
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -52,12 +49,10 @@ jobs:
         name: grype-scan
         path: grype-scan.json
 
-    # Semgrep kurulumu (hatasız pip ile)
     - name: Install Semgrep
       run: |
         pip install semgrep
 
-    # Semgrep SAST taraması ve SARIF çıktısı
     - name: Run Semgrep and output SARIF
       run: |
         semgrep --config p/default --sarif > semgrep-results.sarif || true
