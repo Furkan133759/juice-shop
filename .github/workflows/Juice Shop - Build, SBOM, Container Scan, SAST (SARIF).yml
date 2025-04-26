@@ -9,6 +9,8 @@ on:
 jobs:
   full_pipeline:
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # SARIF dosyalarını yüklemek için GEREKLİ
 
     steps:
     - name: Checkout code
@@ -65,6 +67,11 @@ jobs:
         name: semgrep-sarif
         path: semgrep-results.sarif
 
+    - name: Upload Semgrep SARIF to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: semgrep-results.sarif
+
     - name: Install Gitleaks
       run: |
         curl -sL https://github.com/gitleaks/gitleaks/releases/download/v8.18.1/gitleaks_8.18.1_linux_x64.tar.gz -o gitleaks.tar.gz
@@ -83,8 +90,18 @@ jobs:
         name: gitleaks-sarif
         path: gitleaks-results.sarif
 
+    - name: Upload Gitleaks SARIF to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: gitleaks-results.sarif
+
     - name: Dummy Deploy Step
       run: |
         echo "Deploying Juice Shop..."
         sleep 2
         echo "Deployment completed successfully! 🎉"
+
+    - name: Summary Report
+      run: |
+        echo "::notice :: Juice Shop Build, Scan and Dummy Deploy completed."
+        echo "::notice :: SBOM generated, Container scanned, SAST and Secret Scans uploaded."
