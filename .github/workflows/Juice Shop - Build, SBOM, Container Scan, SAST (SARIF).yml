@@ -1,4 +1,4 @@
-name: Juice Shop - Build, SBOM, Container Scan, SAST (SARIF)
+name: Juice Shop - Build, SBOM, Container Scan, SAST, Secret Scan
 
 on:
   workflow_dispatch:
@@ -7,13 +7,14 @@ on:
       - main
 
 jobs:
-  build_sbom_scan_sast:
+  full_pipeline:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Docker Build
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -21,6 +22,7 @@ jobs:
       run: |
         docker build -t juice-shop-custom .
 
+    # Syft SBOM
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -35,6 +37,7 @@ jobs:
         name: sbom-file
         path: sbom.json
 
+    # Grype Tarama
     - name: Install Grype
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -49,6 +52,7 @@ jobs:
         name: grype-scan
         path: grype-scan.json
 
+    # Semgrep ile SAST (SARIF)
     - name: Install Semgrep
       run: |
         pip install semgrep
@@ -62,3 +66,18 @@ jobs:
       with:
         name: semgrep-sarif
         path: semgrep-results.sarif
+
+    # Gitleaks ile Secret Tarama
+    - name: Install Gitleaks
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/main/scripts/install.sh | bash
+
+    - name: Run Gitleaks Secret Scan
+      run: |
+        gitleaks detect --source . --report-format sarif --report-path gitleaks-results.sarif || true
+
+    - name: Upload Gitleaks SARIF Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gitleaks-sarif
+        path: gitleaks-results.sarif
