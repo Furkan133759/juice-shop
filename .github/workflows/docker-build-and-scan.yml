@@ -1,10 +1,10 @@
-name: Juice Shop - Build, SBOM, Container Scan, SAST
+name: Juice Shop - Build, SBOM, Container Scan, SAST (SARIF)
 
 on:
   workflow_dispatch:   # Manuel çalıştırmak için
   push:
     branches:
-      - main           # veya hangi branch kullanıyorsan
+      - main           # veya kullandığın branch
 
 jobs:
   build_sbom_scan_sast:
@@ -14,7 +14,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Docker build adımı
+    # Docker Build adımı
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -22,7 +22,7 @@ jobs:
       run: |
         docker build -t juice-shop-custom .
 
-    # Syft ile SBOM çıkarımı
+    # Syft kurulumu ve SBOM çıkarımı
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -37,7 +37,7 @@ jobs:
         name: sbom-file
         path: sbom.json
 
-    # Grype ile docker image tarama
+    # Grype kurulumu ve Container taraması
     - name: Install Grype
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -52,17 +52,18 @@ jobs:
         name: grype-scan
         path: grype-scan.json
 
-    # Semgrep kurulumu ve SAST taraması
+    # Semgrep kurulumu (hatasız pip ile)
     - name: Install Semgrep
       run: |
-        curl -sL https://semgrep.dev/install.sh | bash
+        pip install semgrep
 
-    - name: Run Semgrep SAST Scan
+    # Semgrep SAST taraması ve SARIF çıktısı
+    - name: Run Semgrep and output SARIF
       run: |
-        ./semgrep/semgrep --config "p/default" --json > semgrep-scan.json || true
+        semgrep --config p/default --sarif > semgrep-results.sarif || true
 
-    - name: Upload Semgrep SAST Artifact
+    - name: Upload Semgrep SARIF Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: semgrep-scan
-        path: semgrep-scan.json
+        name: semgrep-sarif
+        path: semgrep-results.sarif
