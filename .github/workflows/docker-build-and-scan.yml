@@ -1,0 +1,40 @@
+name: Juice Shop Build, SBOM and Scan
+
+on:
+  workflow_dispatch:  # Manuel başlatma
+  push:
+    branches:
+      - main          # veya kendi branch ismini yaz
+
+jobs:
+  build_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t juice-shop-custom .
+
+    - name: Install Syft
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Generate SBOM with Syft
+      run: |
+        syft docker:juice-shop-custom -o json > sbom.json
+
+    - name: Upload SBOM Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-file
+        path: sbom.json
+
+    - name: Install Grype
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anch
